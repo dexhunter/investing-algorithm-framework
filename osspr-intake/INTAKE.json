@@ -1,0 +1,60 @@
+[
+  {
+    "upstream_repo": "coding-kitties/investing-algorithm-framework",
+    "head_sha": "e65f538e537a64e418af66c1e3de1f0b07d7063a",
+    "file": "investing_algorithm_framework/services/indicator_engine.py",
+    "function": "_ema",
+    "native_test_cmd": "python3 -m pytest tests/services/test_indicator_engine.py",
+    "bench_cmd": "python3 osspr-intake/harness/ema_runtime.py",
+    "baseline_median_ms": 295.4918,
+    "baseline_noise_pct": 3.9034,
+    "tests_pass_on_baseline": true,
+    "workload": "One year of 1-minute closes (525,600 bars) with a missing bar every 50,000 minutes, period 20.",
+    "notes": "compute_indicator calls this for EMA, MACD, and Wilder RSI. The loop enumerates a pandas Series, so every bar is boxed. The same reset-on-gap recurrence over the NumPy buffer returns an equal Series; a local copy of that loop was 296 ms to 128 ms on this workload."
+  },
+  {
+    "upstream_repo": "coding-kitties/investing-algorithm-framework",
+    "head_sha": "e65f538e537a64e418af66c1e3de1f0b07d7063a",
+    "file": "investing_algorithm_framework/services/metrics/drawdown.py",
+    "function": "get_drawdown_series",
+    "native_test_cmd": "python3 -m pytest tests/services/metrics/test_drawdowns.py",
+    "bench_cmd": "python3 osspr-intake/harness/drawdown_runtime.py",
+    "baseline_median_ms": 166.2095,
+    "baseline_noise_pct": 1.9025,
+    "tests_pass_on_baseline": true,
+    "workload": "One year of 1-minute portfolio snapshots (525,600 bars) with a two-month drawdown, in bar order.",
+    "notes": "The vector engine stores one snapshot per bar. The function builds a sorted equity-curve list and then a second drawdown list. One pass from the snapshots into the result list matched the current pairs and took 110 ms instead of 162 ms on this workload."
+  },
+  {
+    "upstream_repo": "coding-kitties/investing-algorithm-framework",
+    "head_sha": "e65f538e537a64e418af66c1e3de1f0b07d7063a",
+    "file": "investing_algorithm_framework/domain/backtesting/records.py",
+    "function": "canonical_bytes",
+    "native_test_cmd": "python3 -m pytest tests/domain/test_backtest_records.py",
+    "bench_cmd": "python3 osspr-intake/harness/canonical_peak_memory.py",
+    "metric_kind": "peak_memory_bytes",
+    "baseline_value": 3918176,
+    "baseline_noise_pct": 0.0014,
+    "metric_benchmark": "python3 osspr-intake/harness/canonical_peak_memory.py",
+    "labeled_data": null,
+    "tests_pass_on_baseline": true,
+    "workload": "Replay provenance document for a 2,000-symbol daily universe, the shape validate_provenance accepts.",
+    "notes": "provenance_id hashes this document through canonical_bytes. The encoder builds a tagged Python tree and then json.dumps it. Traced peak is 3.9 MiB for about 680 KiB of output bytes, which the record tests lock. A writer that emits those same bytes without the tree removes more than 1 MiB of peak."
+  },
+  {
+    "upstream_repo": "coding-kitties/investing-algorithm-framework",
+    "head_sha": "e65f538e537a64e418af66c1e3de1f0b07d7063a",
+    "file": "investing_algorithm_framework/app/reporting/backtest_report.py",
+    "function": "BacktestReport._build_run_data",
+    "native_test_cmd": "python3 -m pytest tests/app/reporting/test_backtest_report_html.py",
+    "bench_cmd": "python3 osspr-intake/harness/report_run_data_peak_memory.py",
+    "metric_kind": "peak_memory_bytes",
+    "baseline_value": 27541576,
+    "baseline_noise_pct": 0.0006,
+    "metric_benchmark": "python3 osspr-intake/harness/report_run_data_peak_memory.py",
+    "labeled_data": null,
+    "tests_pass_on_baseline": true,
+    "workload": "One leap year of 15-minute equity, drawdown, TWR equity, TWR drawdown, and rolling Sharpe on a single backtest run.",
+    "notes": "The dashboard formats every point into a [value, date] list, then _downsample keeps 300 points. Traced peak is 26.3 MiB. Choosing the kept indexes first and formatting only those points returns the same run-data dict without the temporary string lists."
+  }
+]
