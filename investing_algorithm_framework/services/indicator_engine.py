@@ -157,21 +157,36 @@ def confluence_decision_trace(name, card, payload, values):
 def _ema(values, period, *, wilder=False):
     """Reset on missing observations; Wilder seeds with an SMA, EMA with first."""
     result = np.full(len(values), np.nan)
-    count, state, total = 0, np.nan, 0.0
+    start, ready_at = 0, period - 1
+    state, total = np.nan, 0.0
     alpha = 1 / period if wilder else 2 / (period + 1)
-    for i, value in enumerate(values):
-        if not np.isfinite(value):
-            count, state, total = 0, np.nan, 0.0
+    decay = 1 - alpha
+    if (isinstance(values, pd.Series)
+            and isinstance(values.dtype, np.dtype)
+            and values.dtype.kind in "biuf"):
+        finite = np.isfinite(values.to_numpy()).tobytes()
+        output = memoryview(result)
+    else:
+        finite = list(map(np.isfinite, values))
+        output = result
+    observations = values
+    if (type(values) is pd.Series and values.dtype == np.dtype("float64")
+            and values.dtype.isnative):
+        observations = memoryview(values.to_numpy())
+    for i, value in enumerate(observations):
+        if not finite[i]:
+            start = i + 1
+            ready_at = start + period - 1
+            state, total = np.nan, 0.0
             continue
-        count += 1
-        if wilder and count <= period:
+        if wilder and i <= ready_at:
             total += value
-            if count == period:
+            if i == ready_at:
                 state = total / period
         else:
-            state = value if count == 1 else alpha * value + (1 - alpha) * state
-        if count >= period:
-            result[i] = state
+            state = value if i == start else alpha * value + decay * state
+        if i >= ready_at:
+            output[i] = state
     return pd.Series(result, index=values.index)
 
 
