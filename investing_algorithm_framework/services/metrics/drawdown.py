@@ -52,7 +52,8 @@ def get_drawdown_series(
             drawdown_series.append((0.0, timestamp))
             continue
 
-        max_value = max(max_value, value)
+        if value > max_value:
+            max_value = value
         drawdown = (value - max_value) / max_value
         drawdown_series.append((drawdown, timestamp))
 
